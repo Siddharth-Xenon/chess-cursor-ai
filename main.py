@@ -35,7 +35,6 @@ app.include_router(
     users.router,
     prefix="/users",
     tags=["users"],
-    # dependencies=[Depends(get_current_user)],
 )
 app.include_router(
     games.router,

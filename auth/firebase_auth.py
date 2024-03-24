@@ -76,3 +76,17 @@ def delete_user(uid: str):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error deleting user: {e}"
         )
+
+
+def authenticate_user(email: str, password: str):
+    """
+    Authenticate a user by email and password
+    """
+    try:
+        user = auth.authenticate_user(email=email, password=password)
+        return user
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error authenticating user: {e}",
+        )

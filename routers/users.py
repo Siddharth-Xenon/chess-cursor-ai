@@ -6,15 +6,15 @@ from auth.firebase_auth import (
     update_user,
     delete_user,
     verify_id_token,
+    authenticate_user,  # Assuming this is a new function you will add for authentication
 )
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 router = APIRouter()
-auth_scheme = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
-    token = credentials.credentials
+async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = verify_id_token(token)
         return payload
@@ -22,17 +22,43 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(auth_sc
         raise HTTPException(
             status_code=401,
             detail=f"Invalid authentication credentials: {e}",
-            headers={"WWW-Authenticate": "Bearer"},
         )
 
 
-@router.post("/users/", response_description="Add new user", response_model=UserDisplay)
+@router.post("/token", response_model=UserDisplay)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    firebase_user = authenticate_user(
+        email=form_data.username, password=form_data.password
+    )
+    if firebase_user:
+        return {
+            "username": firebase_user.display_name,
+            "email": firebase_user.email,
+            "token": firebase_user.token,
+        }
+    else:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+
+@router.post(
+    "/users/",
+    response_description="Add new user",
+    response_model=UserDisplay,
+    dependencies=[],
+)
 async def create_user_route(user: UserCreate = Body(...)):
     firebase_user = create_user(
         email=user.email, password=user.password, username=user.username
     )
     if firebase_user:
-        return UserDisplay(username=user.username, email=user.email)
+        # Authenticate the user immediately after creation
+        token = authenticate_user(email=user.email, password=user.password)
+        if token:
+            return {"username": user.username, "email": user.email, "token": token}
+        else:
+            raise HTTPException(
+                status_code=400, detail="Authentication failed after user creation"
+            )
     raise HTTPException(status_code=400, detail="Error creating user")
 
 

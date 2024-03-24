@@ -1,6 +1,9 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi import FastAPI
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # This method call loads the environment variables
 
 
 class DataBase:
@@ -12,7 +15,11 @@ def get_database():
 
 
 async def connect_to_mongo():
+    print(os.getenv("MONGODB_URL"))
     DataBase.client = AsyncIOMotorClient(os.getenv("MONGODB_URL"))
+    # DataBase.client = AsyncIOMotorClient(
+    #     "mongodb+srv://sidsolanki920:ApoI4UMIy5HUgdHp@chess-tutor.tdk16xb.mongodb.net/chess-tutor"
+    # )
 
 
 async def close_mongo_connection():
